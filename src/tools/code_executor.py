@@ -3,9 +3,12 @@ import tempfile
 import os
 
 
-def execute_python_code(code: str, timeout: int = 30) -> dict:
+def execute_python_code(code: str, timeout: int = 30, work_dir: str = None) -> dict:
     """Execute Python code in a subprocess and return stdout/stderr."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    if work_dir is None:
+        work_dir = os.getcwd()
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, dir=work_dir) as f:
         f.write(code)
         f.flush()
         tmp_path = f.name
@@ -16,7 +19,7 @@ def execute_python_code(code: str, timeout: int = 30) -> dict:
             capture_output=True,
             text=True,
             timeout=timeout,
-            cwd=os.path.dirname(tmp_path)
+            cwd=work_dir
         )
         return {
             "success": result.returncode == 0,
@@ -36,16 +39,6 @@ def execute_python_code(code: str, timeout: int = 30) -> dict:
 
 
 if __name__ == "__main__":
-    # Test basic execution
     result = execute_python_code("print('hello from executor')")
     print(f"Success: {result['success']}")
     print(f"Output: {result['stdout']}")
-
-    # Test error handling
-    result = execute_python_code("raise ValueError('test error')")
-    print(f"\nError test - Success: {result['success']}")
-    print(f"Stderr: {result['stderr']}")
-
-    # Test pandas
-    result = execute_python_code("import pandas as pd; print(pd.__version__)")
-    print(f"\nPandas test - Output: {result['stdout']}")
